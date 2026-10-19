@@ -20,7 +20,8 @@ public class RssMatchingBenchmarkTests(ITestOutputHelper output)
         IReadOnlyDictionary<int, int?> earlyLimits,
         IReadOnlyCollection<League> knownLeagues, IReadOnlyCollection<Event> datePeers,
         IReadOnlyDictionary<(int? LeagueId, string? Season, string? Round), List<int>> roundRaceNumbersByRound,
-        IReadOnlyDictionary<(int? LeagueId, string? Season), NascarVenueMatchContext> nascarVenues);
+        IReadOnlyDictionary<(int? LeagueId, string? Season), NascarVenueMatchContext> nascarVenues,
+        IReadOnlyDictionary<int, int> seriesGameNumbers);
 
     [Fact]
     public void MixedFeed_SelectsExpectedEvents_OnFirstAndRepeatPass()
@@ -121,7 +122,8 @@ public class RssMatchingBenchmarkTests(ITestOutputHelper output)
             new[] { league },
             events,
             RoundSchedule(events),
-            new Dictionary<(int? LeagueId, string? Season), NascarVenueMatchContext>());
+            new Dictionary<(int? LeagueId, string? Season), NascarVenueMatchContext>(),
+            new Dictionary<int, int>());
 
         result.Should().BeSameAs(events[2]);
     }
@@ -190,7 +192,8 @@ public class RssMatchingBenchmarkTests(ITestOutputHelper output)
             new[] { league },
             new[] { adjacentGame, namedGame },
             RoundSchedule(Array.Empty<Event>()),
-            new Dictionary<(int? LeagueId, string? Season), NascarVenueMatchContext>());
+            new Dictionary<(int? LeagueId, string? Season), NascarVenueMatchContext>(),
+            new Dictionary<int, int>());
 
         result.Should().BeNull();
     }
@@ -239,7 +242,8 @@ public class RssMatchingBenchmarkTests(ITestOutputHelper output)
                 new[] { league },
                 Array.Empty<Event>(),
                 RoundSchedule(Array.Empty<Event>()),
-                new Dictionary<(int? LeagueId, string? Season), NascarVenueMatchContext>())
+                new Dictionary<(int? LeagueId, string? Season), NascarVenueMatchContext>(),
+            new Dictionary<int, int>())
             .Should().BeSameAs(evt);
     }
 
@@ -288,7 +292,8 @@ public class RssMatchingBenchmarkTests(ITestOutputHelper output)
             new[] { league },
             Array.Empty<Event>(),
             RoundSchedule(Array.Empty<Event>()),
-            new Dictionary<(int? LeagueId, string? Season), NascarVenueMatchContext>()).Should().BeNull();
+            new Dictionary<(int? LeagueId, string? Season), NascarVenueMatchContext>(),
+            new Dictionary<int, int>()).Should().BeNull();
     }
 
     private int?[] Measure(string pass, FindMatch findMatch,
@@ -318,7 +323,8 @@ public class RssMatchingBenchmarkTests(ITestOutputHelper output)
                 knownLeagues,
                 events,
                 roundSchedule,
-                nascarVenues)?.Id;
+                nascarVenues,
+                new Dictionary<int, int>())?.Id;
         }
         timer.Stop();
         var allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;

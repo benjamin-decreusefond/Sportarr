@@ -349,6 +349,7 @@ app.MapPost("/api/event/{eventId:int}/search", async (
     var knownLeagues = await LeagueMatchContext.LoadAsync(db);
     var roundRaceNumbers = await LoadRoundRaceNumbersAsync(db, evt);
     var datePeers = await EventDateMatchContext.LoadAsync(db, evt);
+    var seriesGameNumber = await TeamSeriesGameContext.LoadGameNumberAsync(db, evt);
     var venueContext = await NascarVenueMatchContext.LoadAsync(db, evt);
 
     var dateRejectionCount = 0;
@@ -358,7 +359,7 @@ app.MapPost("/api/event/{eventId:int}/search", async (
         var earlyLimit = ReleaseMatchingService.ResolveEarlyReleaseLimit(result, earlyReleaseLimits);
         var matchResult = releaseMatchingService.ValidateRelease(result, evt, part, config.EnableMultiPartEpisodes,
             earlyReleaseLimitDays: earlyLimit, roundRaceNumbers: roundRaceNumbers,
-            knownLeagues: knownLeagues, datePeers: datePeers);
+            knownLeagues: knownLeagues, datePeers: datePeers, seriesGameNumber: seriesGameNumber);
 
         if (matchResult.IsHardRejection)
         {
@@ -427,7 +428,8 @@ app.MapPost("/api/event/{eventId:int}/search", async (
                 var earlyLimit = ReleaseMatchingService.ResolveEarlyReleaseLimit(release, earlyReleaseLimits);
                 var matchResult = releaseMatchingService.ValidateRelease(release, evt, part,
                     config.EnableMultiPartEpisodes, earlyReleaseLimitDays: earlyLimit,
-                    roundRaceNumbers: roundRaceNumbers, knownLeagues: knownLeagues, datePeers: datePeers);
+                    roundRaceNumbers: roundRaceNumbers, knownLeagues: knownLeagues, datePeers: datePeers,
+                    seriesGameNumber: seriesGameNumber);
                 if (matchResult.IsHardRejection)
                 {
                     release.Rejections.AddRange(matchResult.Rejections);

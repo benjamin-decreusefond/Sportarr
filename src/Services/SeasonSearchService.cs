@@ -127,6 +127,12 @@ public class SeasonSearchService
                 group => group.Key!,
                 group => ReleaseMatchingService.RaceNumbersInTitles(group.Select(evt => evt.Title)));
 
+        var seriesGameNumbers = seasonEvents
+            .Where(TeamSeriesGameContext.ShouldLoad)
+            .Select(evt => (evt.Id, Number: TeamSeriesGameContext.GameNumber(evt, seasonEvents)))
+            .Where(entry => entry.Number.HasValue)
+            .ToDictionary(entry => entry.Id, entry => entry.Number);
+
         foreach (var release in allReleases)
         {
             if (string.IsNullOrEmpty(release.Guid))
@@ -160,7 +166,8 @@ public class SeasonSearchService
                     earlyReleaseLimitDays: earlyLimit,
                     roundRaceNumbers: roundRaceNumbers,
                     knownLeagues: knownLeagues,
-                    datePeers: seasonEvents);
+                    datePeers: seasonEvents,
+                    seriesGameNumber: seriesGameNumbers.GetValueOrDefault(evt.Id));
 
                 if (matchResult.IsMatch)
                 {
