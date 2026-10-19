@@ -25,6 +25,12 @@ public class ReleaseMatchingService
         @"(?:[\s._]*(?:[-/&+]|and)[\s._]*(?<number>0*[1-9][0-9]{0,2})(?![\p{L}\p{M}\p{N}]))*",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+    private static readonly Regex TeamPlayoffReleasePattern = new(
+        @"(?<![\p{L}\p{M}\p{N}])(?:play[\s._-]?offs?|post[\s._-]?season|finals?|semi[\s._-]?finals?|" +
+        @"quarter[\s._-]?finals?|conference|stanley[\s._-]+cup|world[\s._-]+series|championship[\s._-]+series|" +
+        @"[an]l[cd]s|wild[\s._-]?card)(?![\p{L}\p{M}\p{N}])",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
     private static readonly Regex TeamGameDateMonthPattern = new(
         @"^[.\s_-](?<month>[0-9]{2})(?=[.\s_-]|$)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
@@ -332,7 +338,8 @@ public class ReleaseMatchingService
         int? earlyReleaseLimitDays = null,
         IReadOnlyList<int>? roundRaceNumbers = null,
         IReadOnlyCollection<League>? knownLeagues = null,
-        IReadOnlyCollection<Event>? datePeers = null)
+        IReadOnlyCollection<Event>? datePeers = null,
+        int? seriesGameNumber = null)
     {
         var result = new ReleaseMatchResult
         {
@@ -764,6 +771,16 @@ public class ReleaseMatchingService
             if (releaseGames.Count > 0)
             {
                 var eventGames = ExtractTeamGameNumbers(evt.Title, stripReleaseGroup: false);
+                // Catalog titles name the fixture, not the game of the series. Use the
+                // event's position in the playoff series when an undated release is about one.
+                var seriesGame = eventGames.Count == 0 && seriesGameNumber.HasValue &&
+                    !parseResult.EventDate.HasValue &&
+                    (TeamSeriesGameContext.IsPostseasonRound(evt.Round) == true ||
+                        TeamPlayoffReleasePattern.IsMatch(release.Title))
+                    ? seriesGameNumber
+                    : null;
+                if (seriesGame.HasValue)
+                    eventGames.Add(seriesGame.Value);
                 var conflictingGame = eventGames.Count == 1 && !releaseGames.SetEquals(eventGames);
                 var unidentifiedGame = !parseResult.EventDate.HasValue &&
                     !hasExactTeamGameIdentity &&
@@ -773,9 +790,16 @@ public class ReleaseMatchingService
                     result.Confidence = 0;
                     result.IsHardRejection = true;
                     result.Rejections.Add(conflictingGame
-                        ? "Game number conflicts with the event title"
+                        ? seriesGame.HasValue
+                            ? $"Game number conflicts with the event: release is Game {releaseGames.First()}, event is Game {seriesGame} of the series"
+                            : "Game number conflicts with the event title"
                         : "Game identity is ambiguous: release needs a date or matching game number in the event title");
                     return result;
+                }
+                if (seriesGame.HasValue)
+                {
+                    result.Confidence += 20;
+                    result.MatchReasons.Add($"Game number matches the event's place in the series: Game {seriesGame}");
                 }
             }
         }

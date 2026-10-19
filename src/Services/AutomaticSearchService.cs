@@ -482,6 +482,7 @@ public class AutomaticSearchService : IAutomaticSearchService
             {
                 datePeers = await EventDateMatchContext.LoadAsync(_db, evt);
             }
+            var seriesGameNumber = await TeamSeriesGameContext.LoadGameNumberAsync(_db, evt);
             List<int>? roundRaceNumbers = null;
             if (!string.IsNullOrEmpty(evt.Round) &&
                 evt.League?.Name.Contains("Supercars", StringComparison.OrdinalIgnoreCase) == true)
@@ -724,7 +725,8 @@ public class AutomaticSearchService : IAutomaticSearchService
                         var earlyLimit = ReleaseMatchingService.ResolveEarlyReleaseLimit(release, earlyReleaseLimits);
                         return _releaseMatchingService.ValidateRelease(release, evt, part, config.EnableMultiPartEpisodes,
                             earlyReleaseLimitDays: earlyLimit, roundRaceNumbers: roundRaceNumbers,
-                            knownLeagues: knownLeagues, datePeers: datePeers);
+                            knownLeagues: knownLeagues, datePeers: datePeers,
+                            seriesGameNumber: seriesGameNumber);
                     };
                 }
 

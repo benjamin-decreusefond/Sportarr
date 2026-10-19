@@ -214,6 +214,8 @@ public class RssSyncService : BackgroundService
         var roundRaceNumbersByRound = await LoadSupercarsRoundRaceNumbersAsync(
             db, monitoredEvents, cancellationToken);
         var nascarVenues = await LoadNascarVenueContextsAsync(db, monitoredEvents, cancellationToken);
+        var seriesGameNumbers = await TeamSeriesGameContext.LoadGameNumbersAsync(
+            db, monitoredEvents, cancellationToken);
 
         _logger.LogDebug("[RSS Sync] Loaded {ProfileCount} quality profiles, {FormatCount} custom formats, {ReleaseProfileCount} release profiles for evaluation",
             qualityProfiles.Count, customFormats.Count, releaseProfiles.Count);
@@ -238,7 +240,8 @@ public class RssSyncService : BackgroundService
                     knownLeagues,
                     datePeers,
                     roundRaceNumbersByRound,
-                    nascarVenues);
+                    nascarVenues,
+                    seriesGameNumbers);
 
                 if (matchedEvent == null)
                     continue;
@@ -509,6 +512,8 @@ public class RssSyncService : BackgroundService
         var roundRaceNumbersByRound = await LoadSupercarsRoundRaceNumbersAsync(
             db, monitoredEvents, cancellationToken);
         var nascarVenues = await LoadNascarVenueContextsAsync(db, monitoredEvents, cancellationToken);
+        var seriesGameNumbers = await TeamSeriesGameContext.LoadGameNumbersAsync(
+            db, monitoredEvents, cancellationToken);
 
         var matchedEvent = FindMatchingEvent(
             release,
@@ -521,7 +526,8 @@ public class RssSyncService : BackgroundService
             knownLeagues,
             datePeers,
             roundRaceNumbersByRound,
-            nascarVenues);
+            nascarVenues,
+            seriesGameNumbers);
 
         if (matchedEvent == null)
         {
@@ -663,7 +669,8 @@ public class RssSyncService : BackgroundService
         IReadOnlyCollection<League> knownLeagues,
         IReadOnlyCollection<Event> datePeers,
         IReadOnlyDictionary<(int? LeagueId, string? Season, string? Round), List<int>> roundRaceNumbersByRound,
-        IReadOnlyDictionary<(int? LeagueId, string? Season), NascarVenueMatchContext> nascarVenues)
+        IReadOnlyDictionary<(int? LeagueId, string? Season), NascarVenueMatchContext> nascarVenues,
+        IReadOnlyDictionary<int, int> seriesGameNumbers)
     {
         Event? bestMatch = null;
         int bestConfidence = int.MinValue;
@@ -699,7 +706,8 @@ public class RssSyncService : BackgroundService
             roundRaceNumbersByRound.TryGetValue((evt.LeagueId, evt.Season, evt.Round), out var roundRaceNumbers);
             var matchResult = matchingService.ValidateRelease(release, evt, requestedPart, enableMultiPartEpisodes, preParsed,
                 earlyReleaseLimitDays: earlyLimit, roundRaceNumbers: roundRaceNumbers,
-                knownLeagues: knownLeagues, datePeers: datePeers);
+                knownLeagues: knownLeagues, datePeers: datePeers,
+                seriesGameNumber: seriesGameNumbers.TryGetValue(evt.Id, out var seriesGame) ? seriesGame : null);
             if (!matchResult.IsMatch || matchResult.IsHardRejection)
                 continue;
 
